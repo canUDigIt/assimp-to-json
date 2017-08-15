@@ -18,6 +18,8 @@ json node_to_json(const aiNode* pNode) {}
 
 void scene_to_json(const aiScene* pScene, json& j)
 {
+    j["flags"] = pScene->mFlags;
+
     j["num_meshes"] = pScene->mNumMeshes;
     for (unsigned int i = 0; i < pScene->mNumMeshes; ++i)
     {
