@@ -8,7 +8,38 @@
 
 using json = nlohmann::json;
 
-json bone_to_json(const aiBone* pBone) {}
+void to_json(json& j, const aiMatrix4x4& matrix)
+{
+    j = json::array({
+            matrix.a1, matrix.a2, matrix.a3, matrix.a4,
+            matrix.b1, matrix.b2, matrix.b3, matrix.b4,
+            matrix.c1, matrix.c2, matrix.c3, matrix.c4,
+            matrix.d1, matrix.d2, matrix.d3, matrix.d4,
+        });
+}
+
+void to_json(json& j, aiVertexWeight weight)
+{
+    j = json {
+        {"id", weight.mVertexId},
+        {"weight", weight.mWeight}
+    };
+}
+
+void to_json(json& j, const aiBone* pBone)
+{
+    j = json {
+        {"name", pBone->mName.C_Str()},
+        {"num_weights", pBone->mNumWeights},
+        {"offset_matrix", pBone->mOffsetMatrix},
+        {"weights", json::array()}
+    };
+
+    for (int i = 0; i < pBone->mNumWeights; ++i)
+    {
+        j["weights"].push_back(pBone->mWeights[i]);
+    }
+}
 
 json mesh_to_json(const aiMesh* pMesh)
 {
@@ -69,7 +100,7 @@ json mesh_to_json(const aiMesh* pMesh)
         for (unsigned int i = 0; i < pMesh->mNumBones; ++i)
         {
             aiBone* pBone = pMesh->mBones[i];
-            output["bones"].push_back(bone_to_json(pBone));
+            output["bones"].push_back(pBone);
         }
     }
 
