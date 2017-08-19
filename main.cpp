@@ -5,6 +5,7 @@
 #include <json/json.hpp>
 
 #include <iostream>
+#include <string>
 
 using json = nlohmann::json;
 
@@ -41,19 +42,40 @@ void to_json(json& j, const aiBone* pBone)
     }
 }
 
-json mesh_to_json(const aiMesh* pMesh)
+void to_json(json& j, const aiVector3D& vertex)
 {
-    json output;
-    output["name"] = pMesh->mName.C_Str();
-    output["primitive_types"] = pMesh->mPrimitiveTypes;
-    output["material_index"] = pMesh->mMaterialIndex;
+    j = json {vertex.x, vertex.y, vertex.z};
+}
+
+void to_json(json& j, const aiColor4D& color)
+{
+    j = json {color.r, color.g, color.b, color.a};
+}
+
+void to_json(json& j, const aiFace& face)
+{
+    unsigned int numIndices = face.mNumIndices;
+    std::vector<unsigned int> indices(numIndices);
+
+    for (unsigned int j = 0; j < numIndices; ++j)
+    {
+        indices[j] = face.mIndices[j];
+    }
+
+    j = json { {"num_indices", numIndices}, {"indices", indices} };
+}
+
+void to_json(json& j, const aiMesh* pMesh)
+{
+    j["name"] = pMesh->mName.C_Str();
+    j["primitive_types"] = pMesh->mPrimitiveTypes;
+    j["material_index"] = pMesh->mMaterialIndex;
 
     if (pMesh->HasPositions())
     {
         for (unsigned int i = 0; i < pMesh->mNumVertices; ++i)
         {
-            aiVector3D& vertex = pMesh->mVertices[i];
-            output["vertices"].push_back({vertex.x, vertex.y, vertex.z});
+            j["vertices"].push_back(pMesh->mVertices[i]);
         }
     }
 
@@ -61,8 +83,7 @@ json mesh_to_json(const aiMesh* pMesh)
     {
         for (unsigned int i = 0; i < pMesh->mNumVertices; ++i)
         {
-            aiVector3D& normal = pMesh->mNormals[i];
-            output["normals"].push_back({normal.x, normal.y, normal.z});
+            j["normals"].push_back(pMesh->mNormals[i]);
         }
     }
 
@@ -70,11 +91,8 @@ json mesh_to_json(const aiMesh* pMesh)
     {
         for (unsigned int i = 0; i < pMesh->mNumVertices; ++i)
         {
-            aiVector3D& tangent = pMesh->mTangents[i];
-            output["tangents"].push_back({tangent.x, tangent.y, tangent.z});
-
-            aiVector3D& bitangent = pMesh->mBitangents[i];
-            output["bitangents"].push_back({bitangent.x, bitangent.y, bitangent.z});
+            j["tangents"].push_back(pMesh->mTangents[i]);
+            j["bitangents"].push_back(pMesh->mBitangents[i]);
         }
     }
 
@@ -82,16 +100,7 @@ json mesh_to_json(const aiMesh* pMesh)
     {
         for (unsigned int i = 0; i < pMesh->mNumVertices; ++i)
         {
-            aiFace& face = pMesh->mFaces[i];
-            unsigned int numIndices = face.mNumIndices;
-            std::vector<unsigned int> indices(numIndices);
-
-            for (unsigned int j = 0; j < numIndices; ++j)
-            {
-                indices[j] = face.mIndices[j];
-            }
-
-            output["faces"].push_back(indices);
+            j["faces"].push_back(pMesh->mFaces[i]);
         }
     }
 
@@ -100,7 +109,7 @@ json mesh_to_json(const aiMesh* pMesh)
         for (unsigned int i = 0; i < pMesh->mNumBones; ++i)
         {
             aiBone* pBone = pMesh->mBones[i];
-            output["bones"].push_back(pBone);
+            j["bones"].push_back(pBone);
         }
     }
 
@@ -109,16 +118,13 @@ json mesh_to_json(const aiMesh* pMesh)
         if (pMesh->HasVertexColors(i))
         {
             std::string key = std::to_string(i);
+            std::vector<aiColor4D> colors(pMesh->mNumVertices);
             for (unsigned int j = 0; j < pMesh->mNumVertices; ++j)
             {
-                aiColor4D& color = pMesh->mColors[i][j];
-                output["colors"][key][j].push_back({
-                        color.r, 
-                        color.g, 
-                        color.b, 
-                        color.a
-                });
+                colors[j] = (pMesh->mColors[i][j]);
             }
+
+            j["colors"][key] = colors;
         }
     }
 
@@ -129,72 +135,68 @@ json mesh_to_json(const aiMesh* pMesh)
             std::string key = std::to_string(i);
             unsigned int size = pMesh->mNumUVComponents[i];
 
-            output["texturecoords"][key]["numcomponents"] = size;
-
+            std::vector<aiVector3D> uvs(pMesh->mNumVertices);
             for (unsigned int j = 0; j < pMesh->mNumVertices; ++j)
             {
-                aiVector3D& textureCoord = pMesh->mTextureCoords[i][j];
-                std::vector<float> uvs(size);
-                for (unsigned int k = 0; k < size; ++k)
-                {
-                    uvs[k] = textureCoord[k];
-                }
-                output["texturecoords"][key]["uvs"].push_back(uvs);
+                uvs[j] = (pMesh->mTextureCoords[i][j]);
             }
+
+            j["texturecoords"][key] = {
+                {"numcomponents", size},
+                {"uvs", uvs}
+            };
         }
     }
-
-    return output;
 }
 
-json material_to_json(const aiMaterial* pMaterial) {}
-json texture_to_json(const aiTexture* pTexture) {}
-json light_to_json(const aiLight* pLight) {}
-json camera_to_json(const aiCamera* pCamera) {}
-json animation_to_json(const aiAnimation* pAnimation) {}
-json node_to_json(const aiNode* pNode) {}
+void to_json(json& j, const aiMaterial* pMaterial) {}
+void to_json(json& j, const aiTexture* pTexture) {}
+void to_json(json& j, const aiLight* pLight) {}
+void to_json(json& j, const aiCamera* pCamera) {}
+void to_json(json& j, const aiAnimation* pAnimation) {}
+void to_json(json& j, const aiNode* pNode) {}
 
-void scene_to_json(const aiScene* pScene, json& j)
+void to_json(json& j, const aiScene* pScene)
 {
     j["flags"] = pScene->mFlags;
 
     j["num_meshes"] = pScene->mNumMeshes;
     for (unsigned int i = 0; i < pScene->mNumMeshes; ++i)
     {
-        j["meshes"].push_back(mesh_to_json(pScene->mMeshes[i]));
+        j["meshes"].push_back(pScene->mMeshes[i]);
     }
 
     j["num_materials"] = pScene->mNumMaterials;
     for (unsigned int i = 0; i < pScene->mNumMaterials; ++i)
     {
-        j["materials"].push_back(material_to_json(pScene->mMaterials[i]));
+        j["materials"].push_back(pScene->mMaterials[i]);
     }
 
     j["num_textures"] = pScene->mNumTextures;
     for (unsigned int i = 0; i < pScene->mNumTextures; ++i)
     {
-        j["textures"].push_back(texture_to_json(pScene->mTextures[i]));
+        j["textures"].push_back(pScene->mTextures[i]);
     }
 
     j["num_lights"] = pScene->mNumLights;
     for (unsigned int i = 0; i < pScene->mNumLights; ++i)
     {
-        j["lights"].push_back(light_to_json(pScene->mLights[i]));
+        j["lights"].push_back(pScene->mLights[i]);
     }
 
     j["num_cameras"] = pScene->mNumCameras;
     for (unsigned int i = 0; i < pScene->mNumCameras; ++i)
     {
-        j["cameras"].push_back(camera_to_json(pScene->mCameras[i]));
+        j["cameras"].push_back(pScene->mCameras[i]);
     }
 
     j["num_animations"] = pScene->mNumAnimations;
     for (unsigned int i = 0; i < pScene->mNumAnimations; ++i)
     {
-        j["animations"].push_back(animation_to_json(pScene->mAnimations[i]));
+        j["animations"].push_back(pScene->mAnimations[i]);
     }
 
-    j["root"] = node_to_json(pScene->mRootNode);
+    j["root"] = pScene->mRootNode;
 }
 
 int main(int argc, char* argv[])
@@ -216,8 +218,7 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        json j;
-        scene_to_json(pScene, j);
+        json j = pScene;
 
         std::cout << std::setw(4) << j << std::endl;
 
