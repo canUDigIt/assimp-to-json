@@ -52,6 +52,11 @@ void to_json(json& j, const aiColor4D& color)
     j = json {color.r, color.g, color.b, color.a};
 }
 
+void to_json(json& j, const aiColor3D& color)
+{
+    j = json {color.r, color.g, color.b};
+}
+
 void to_json(json& j, const aiFace& face)
 {
     unsigned int numIndices = face.mNumIndices;
@@ -149,7 +154,176 @@ void to_json(json& j, const aiMesh* pMesh)
     }
 }
 
-void to_json(json& j, const aiMaterial* pMaterial) {}
+std::string texture_string(const aiTextureType& type)
+{
+    std::string name;
+
+    switch (type)
+    {
+        case aiTextureType_DIFFUSE:
+            name = "diffuse";
+            break;
+        case aiTextureType_SPECULAR:
+            name = "specular";
+            break;
+        case aiTextureType_AMBIENT:
+            name = "ambient";
+            break;
+        case aiTextureType_EMISSIVE:
+            name = "emissive";
+            break;
+        case aiTextureType_HEIGHT:
+            name = "height";
+            break;
+        case aiTextureType_NORMALS:
+            name = "normals";
+            break;
+        case aiTextureType_SHININESS:
+            name = "shininess";
+            break;
+        case aiTextureType_OPACITY:
+            name = "opacity";
+            break;
+        case aiTextureType_DISPLACEMENT:
+            name = "displacement";
+            break;
+        case aiTextureType_LIGHTMAP:
+            name = "lightmap";
+            break;
+        case aiTextureType_REFLECTION:
+            name = "reflection";
+            break;
+        case aiTextureType_UNKNOWN:
+            name = "unknown";
+            break;
+    };
+
+    return name;
+}
+
+void to_json(json& j, const aiMaterial* pMaterial)
+{
+    aiString name;
+    if (pMaterial->Get(AI_MATKEY_NAME, name) == AI_SUCCESS)
+    {
+        j["name"] = name.C_Str();
+    }
+
+    aiColor3D diffuse(0.f, 0.f, 0.f);
+    if (pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse) == AI_SUCCESS)
+    {
+        j["diffuse"] = diffuse;
+    }
+
+    aiColor3D specular(0.f, 0.f, 0.f);
+    if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular) == AI_SUCCESS)
+    {
+        j["specular"] = specular;
+    }
+
+    aiColor3D ambient(0.f, 0.f, 0.f);
+    if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambient) == AI_SUCCESS)
+    {
+        j["ambient"] = ambient;
+    }
+
+    aiColor3D emissive(0.f, 0.f, 0.f);
+    if (pMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, emissive) == AI_SUCCESS)
+    {
+        j["emissive"] = emissive;
+    }
+
+    aiColor3D trans(0.f, 0.f, 0.f);
+    if (pMaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, trans)== AI_SUCCESS)
+    {
+        j["transparent"] = trans;
+    }
+
+    int wireframe = 0;
+    if (pMaterial->Get(AI_MATKEY_ENABLE_WIREFRAME, wireframe) == AI_SUCCESS)
+    {
+        j["wireframe"] = wireframe == 0 ? false : true;
+    }
+
+    int twosided = 0;
+    if (pMaterial->Get(AI_MATKEY_TWOSIDED, twosided) == AI_SUCCESS)
+    {
+        j["twosided"] = twosided == 0 ? false : true;
+    }
+
+    int shading_model = 0;
+    if (pMaterial->Get(AI_MATKEY_SHADING_MODEL, shading_model) == AI_SUCCESS)
+    {
+        j["shading_model"] = shading_model;
+    }
+
+    int blend_func = 0;
+    if (pMaterial->Get(AI_MATKEY_BLEND_FUNC, blend_func) == AI_SUCCESS)
+    {
+        j["blend_func"] = blend_func;
+    }
+
+    float opacity = 1.f;
+    if (pMaterial->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS)
+    {
+        j["opacity"] = opacity;
+    }
+
+    float shininess = 0.f;
+    if (pMaterial->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
+    {
+        j["shininess"] = shininess;
+    }
+
+    float shininess_strength = 1.f;
+    if (pMaterial->Get(AI_MATKEY_SHININESS_STRENGTH, shininess_strength) == AI_SUCCESS)
+    {
+        j["shininess_strength"] = shininess_strength;
+    }
+
+    float refraction = 1.f;
+    if (pMaterial->Get(AI_MATKEY_REFRACTI, refraction) == AI_SUCCESS)
+    {
+        j["refraction"] = refraction;
+    }
+
+    std::vector<json> textures;
+    unsigned int texture_type_count = static_cast<int>(aiTextureType_UNKNOWN) + 1;
+    for (unsigned int i = 1; i < texture_type_count; ++i)
+    {
+        aiTextureType type = static_cast<aiTextureType>(i);
+
+        unsigned int count = pMaterial->GetTextureCount(type);
+        for (unsigned int index = 0; index < count; ++index)
+        {
+            aiString path;
+            aiTextureMapping mapping;
+            unsigned int uvindex;
+            ai_real blend;
+            aiTextureOp op;
+            aiTextureMapMode mapmode;
+
+            if (pMaterial->GetTexture(type, index, &path, &mapping, &uvindex, &blend, &op, &mapmode) == AI_SUCCESS)
+            {
+                textures.push_back(json {
+                    {"type", texture_string(type)},
+                    {"path", path.C_Str()},
+                    {"mapping", mapping},
+                    {"uvindex", uvindex},
+                    {"blend", blend},
+                    {"op", op},
+                    {"mapmode", mapmode}
+                });
+            }
+        }
+    }
+
+    if (textures.empty() == false)
+    {
+        j["textures"] = textures;
+    }
+}
+
 void to_json(json& j, const aiTexture* pTexture) {}
 void to_json(json& j, const aiLight* pLight) {}
 void to_json(json& j, const aiCamera* pCamera) {}
