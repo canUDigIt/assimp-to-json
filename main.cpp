@@ -298,20 +298,20 @@ void to_json(json& j, const aiMaterial* pMaterial)
         {
             aiString path;
             aiTextureMapping mapping;
-            unsigned int uvindex;
-            ai_real blend;
+            unsigned int uvindex = 0;
+            ai_real blend = 1.f;
             aiTextureOp op;
-            aiTextureMapMode mapmode;
+            std::vector<aiTextureMapMode> mapmode(3);
 
-            if (pMaterial->GetTexture(type, index, &path, &mapping, &uvindex, &blend, &op, &mapmode) == AI_SUCCESS)
+            if (pMaterial->GetTexture(type, index, &path, &mapping, &uvindex, &blend, &op, mapmode.data()) == AI_SUCCESS)
             {
                 textures.push_back(json {
                     {"type", texture_string(type)},
                     {"path", path.C_Str()},
-                    {"mapping", mapping},
+                    {"mapping", static_cast<unsigned int>(mapping)},
                     {"uvindex", uvindex},
                     {"blend", blend},
-                    {"op", op},
+                    {"op", static_cast<unsigned int>(op)},
                     {"mapmode", mapmode}
                 });
             }
