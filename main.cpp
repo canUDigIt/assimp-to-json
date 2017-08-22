@@ -9,6 +9,11 @@
 
 using json = nlohmann::json;
 
+void to_json(json& j, const aiString& s)
+{
+    j = s.C_Str();
+}
+
 void to_json(json& j, const aiMatrix4x4& matrix)
 {
     j = json::array({
@@ -30,7 +35,7 @@ void to_json(json& j, aiVertexWeight weight)
 void to_json(json& j, const aiBone* pBone)
 {
     j = json {
-        {"name", pBone->mName.C_Str()},
+        {"name", pBone->mName},
         {"num_weights", pBone->mNumWeights},
         {"offset_matrix", pBone->mOffsetMatrix},
         {"weights", json::array()}
@@ -40,6 +45,11 @@ void to_json(json& j, const aiBone* pBone)
     {
         j["weights"].push_back(pBone->mWeights[i]);
     }
+}
+
+void to_json(json& j, const aiVector2D& vertex)
+{
+    j = json {vertex.x, vertex.y};
 }
 
 void to_json(json& j, const aiVector3D& vertex)
@@ -72,7 +82,7 @@ void to_json(json& j, const aiFace& face)
 
 void to_json(json& j, const aiMesh* pMesh)
 {
-    j["name"] = pMesh->mName.C_Str();
+    j["name"] = pMesh->mName;
     j["primitive_types"] = pMesh->mPrimitiveTypes;
     j["material_index"] = pMesh->mMaterialIndex;
 
@@ -206,7 +216,7 @@ void to_json(json& j, const aiMaterial* pMaterial)
     aiString name;
     if (pMaterial->Get(AI_MATKEY_NAME, name) == AI_SUCCESS)
     {
-        j["name"] = name.C_Str();
+        j["name"] = name;
     }
 
     aiColor3D diffuse(0.f, 0.f, 0.f);
@@ -307,7 +317,7 @@ void to_json(json& j, const aiMaterial* pMaterial)
             {
                 textures.push_back(json {
                     {"type", texture_string(type)},
-                    {"path", path.C_Str()},
+                    {"path", path},
                     {"mapping", static_cast<unsigned int>(mapping)},
                     {"uvindex", uvindex},
                     {"blend", blend},
@@ -324,9 +334,58 @@ void to_json(json& j, const aiMaterial* pMaterial)
     }
 }
 
-void to_json(json& j, const aiTexture* pTexture) {}
-void to_json(json& j, const aiLight* pLight) {}
-void to_json(json& j, const aiCamera* pCamera) {}
+void to_json(json& j, const aiTexel& texel)
+{
+    j = json {texel.a, texel.b, texel.g, texel.r};
+}
+
+void to_json(json& j, const aiTexture* pTexture)
+{
+    std::vector<aiTexel> data(pTexture->mWidth * pTexture->mHeight);
+    std::memcpy(data.data(), pTexture->pcData, data.size() * sizeof(aiTexel));
+
+    j = json {
+        {"format", pTexture->achFormatHint},
+        {"height", pTexture->mHeight},
+        {"width", pTexture->mWidth},
+        {"data", data}
+    };
+}
+
+void to_json(json& j, const aiLight* pLight)
+{
+    j = json {
+        {"name", pLight->mName},
+        {"type", static_cast<unsigned int>(pLight->mType)},
+        {"position", pLight->mPosition},
+        {"direction", pLight->mDirection},
+        {"up", pLight->mUp},
+        {"inner_cone_angle", pLight->mAngleInnerCone},
+        {"outer_cone_angle", pLight->mAngleOuterCone},
+        {"attenuation_constant", pLight->mAttenuationConstant},
+        {"attenuation_linear", pLight->mAttenuationLinear},
+        {"attenuation_quadratic", pLight->mAttenuationQuadratic},
+        {"color_ambient", pLight->mColorAmbient},
+        {"color_diffuse", pLight->mColorDiffuse},
+        {"color_specular", pLight->mColorSpecular},
+        {"size", pLight->mSize}
+    };
+}
+
+void to_json(json& j, const aiCamera* pCamera)
+{
+    j = json {
+        {"name", pCamera->mName},
+        {"position", pCamera->mPosition},
+        {"lookAt", pCamera->mLookAt},
+        {"up", pCamera->mUp}, 
+        {"aspect", pCamera->mAspect},
+        {"far", pCamera->mClipPlaneFar},
+        {"near", pCamera->mClipPlaneNear},
+        {"horizontalFOV", pCamera->mHorizontalFOV}
+    };
+}
+
 void to_json(json& j, const aiAnimation* pAnimation) {}
 void to_json(json& j, const aiNode* pNode) {}
 
