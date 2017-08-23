@@ -206,6 +206,9 @@ std::string texture_string(const aiTextureType& type)
         case aiTextureType_UNKNOWN:
             name = "unknown";
             break;
+        default:
+            name = "none";
+            break;
     };
 
     return name;
