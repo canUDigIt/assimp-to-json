@@ -310,10 +310,10 @@ void to_json(json& j, const aiMaterial* pMaterial)
         for (unsigned int index = 0; index < count; ++index)
         {
             aiString path;
-            aiTextureMapping mapping;
+            aiTextureMapping mapping = aiTextureMapping_UV;
             unsigned int uvindex = 0;
             ai_real blend = 1.f;
-            aiTextureOp op;
+            aiTextureOp op = aiTextureOp_Multiply;
             std::vector<aiTextureMapMode> mapmode(3);
 
             if (pMaterial->GetTexture(type, index, &path, &mapping, &uvindex, &blend, &op, mapmode.data()) == AI_SUCCESS)
@@ -389,7 +389,133 @@ void to_json(json& j, const aiCamera* pCamera)
     };
 }
 
-void to_json(json& j, const aiAnimation* pAnimation) {}
+void to_json(json& j, const aiVectorKey& key)
+{
+    j = json {
+        {"time", key.mTime},
+        {"value", key.mValue}
+    };
+}
+
+void to_json(json& j, const aiQuaternion& q)
+{
+    j = json { q.x, q.y, q.z, q.w };
+}
+
+void to_json(json& j, const aiQuatKey& key)
+{
+    j = json {
+        {"time", key.mTime},
+        {"value", key.mValue}
+    };
+}
+
+void to_json(json& j, const aiNodeAnim* nodeAnim)
+{
+    unsigned int position_count = nodeAnim->mNumPositionKeys;
+    unsigned int rotation_count = nodeAnim->mNumRotationKeys;
+    unsigned int scaling_count = nodeAnim->mNumScalingKeys;
+
+    std::vector<aiVectorKey> position_keys(position_count);
+    std::vector<aiQuatKey> rotation_keys(rotation_count);
+    std::vector<aiVectorKey> scaling_keys(scaling_count);
+
+    std::memcpy(position_keys.data(), nodeAnim->mPositionKeys, sizeof(aiVectorKey) * position_count);
+    std::memcpy(rotation_keys.data(), nodeAnim->mRotationKeys, sizeof(aiQuatKey) * rotation_count);
+    std::memcpy(scaling_keys.data(), nodeAnim->mScalingKeys, sizeof(aiVectorKey) * scaling_count);
+
+    j = json {
+        {"node_name", nodeAnim->mNodeName},
+        {"num_position_keys", position_count},
+        {"num_rotation_keys", rotation_count},
+        {"num_scaling_keys", scaling_count},
+        {"position_keys", position_keys},
+        {"post_state", static_cast<unsigned int>(nodeAnim->mPostState)},
+        {"pre_state", static_cast<unsigned int>(nodeAnim->mPreState)},
+        {"rotation_keys", rotation_keys},
+        {"scaling_keys", scaling_keys}
+    };
+}
+
+void to_json(json& j, const aiMeshKey& key)
+{
+    j = json {
+        {"time", key.mTime},
+        {"value", key.mValue}
+    };
+}
+
+void to_json(json& j, const aiMeshAnim* pMeshAnim)
+{
+    unsigned int count = pMeshAnim->mNumKeys;
+    std::vector<aiMeshKey> keys(count);
+    std::memcpy(keys.data(), pMeshAnim->mKeys, sizeof(aiMeshKey) * count);
+
+    j = json {
+        {"keys", keys},
+        {"name", pMeshAnim->mName},
+        {"num_keys", count}
+    };
+}
+
+void to_json(json& j, const aiMeshMorphKey& key)
+{
+    unsigned int count = key.mNumValuesAndWeights;
+    std::vector<unsigned int> values(count);
+    std::vector<double> weights(count);
+
+    std::memcpy(values.data(), key.mValues, sizeof(unsigned int) * count);
+    std::memcpy(weights.data(), key.mWeights, sizeof(double) * count);
+
+    j = json {
+        {"num_values_and_weights", count},
+        {"time", key.mTime},
+        {"values", values},
+        {"weights", weights}
+    };
+}
+
+void to_json(json& j, const aiMeshMorphAnim* pMeshMorphAnim)
+{
+    unsigned int count = pMeshMorphAnim->mNumKeys;
+    std::vector<aiMeshMorphKey> keys(count);
+    std::memcpy(keys.data(), pMeshMorphAnim->mKeys, sizeof(aiMeshMorphKey) * count);
+
+    j = json {
+        {"keys", keys},
+        {"name", pMeshMorphAnim->mName},
+        {"num_keys", count}
+    };
+}
+
+void to_json(json& j, const aiAnimation* pAnimation)
+{
+    unsigned int c_count = pAnimation->mNumChannels;
+    unsigned int mc_count = pAnimation->mNumMeshChannels;
+    unsigned int mmc_count = pAnimation->mNumMorphMeshChannels;
+
+    std::vector<aiNodeAnim*> nodeAnims(c_count);
+    std::memcpy(nodeAnims.data(), pAnimation->mChannels, sizeof(aiNodeAnim*) * c_count);
+
+    std::vector<aiMeshAnim*> meshAnims(mc_count);
+    std::memcpy(meshAnims.data(), pAnimation->mMeshChannels, sizeof(aiMeshAnim*) * mc_count);
+    
+    std::vector<aiMeshMorphAnim*> meshMorphAnims(mmc_count);
+    std::memcpy(meshMorphAnims.data(), pAnimation->mMorphMeshChannels, sizeof(aiMeshMorphAnim*) * mmc_count);
+
+    j = json {
+        {"channels", nodeAnims},
+        {"duration", pAnimation->mDuration},
+        {"mesh_channels", meshAnims},
+        {"morph_mesh_channels", meshMorphAnims},
+        {"name", pAnimation->mName},
+        {"num_channels", c_count},
+        {"num_mesh_channels", mc_count},
+        {"num_morph_mesh_channels", mmc_count},
+        {"ticks_per_second", pAnimation->mTicksPerSecond}
+    };
+}
+
 void to_json(json& j, const aiNode* pNode) {}
 
 void to_json(json& j, const aiScene* pScene)
