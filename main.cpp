@@ -495,12 +495,11 @@ void to_json(json& j, const aiAnimation* pAnimation)
     unsigned int mmc_count = pAnimation->mNumMorphMeshChannels;
 
     std::vector<aiNodeAnim*> nodeAnims(c_count);
-    std::memcpy(nodeAnims.data(), pAnimation->mChannels, sizeof(aiNodeAnim*) * c_count);
-
     std::vector<aiMeshAnim*> meshAnims(mc_count);
-    std::memcpy(meshAnims.data(), pAnimation->mMeshChannels, sizeof(aiMeshAnim*) * mc_count);
-    
     std::vector<aiMeshMorphAnim*> meshMorphAnims(mmc_count);
+
+    std::memcpy(nodeAnims.data(), pAnimation->mChannels, sizeof(aiNodeAnim*) * c_count);
+    std::memcpy(meshAnims.data(), pAnimation->mMeshChannels, sizeof(aiMeshAnim*) * mc_count);
     std::memcpy(meshMorphAnims.data(), pAnimation->mMorphMeshChannels, sizeof(aiMeshMorphAnim*) * mmc_count);
 
     j = json {
@@ -516,7 +515,105 @@ void to_json(json& j, const aiAnimation* pAnimation)
     };
 }
 
-void to_json(json& j, const aiNode* pNode) {}
+void to_json(json& j, const aiMetadataEntry& entry)
+{
+
+    switch (entry.mType)
+    {
+        case AI_BOOL:
+            j = json {
+                {"type", "bool"},
+                {"data", *reinterpret_cast<bool*>(entry.mData)}
+            };
+            break;
+        case AI_INT32:
+            j = json {
+                {"type", "int_32"},
+                {"data", *reinterpret_cast<int32_t*>(entry.mData)}
+            };
+            break;
+        case AI_UINT64:
+            j = json {
+                {"type", "uint_64"},
+                {"data", *reinterpret_cast<uint64_t*>(entry.mData)}
+            };
+            break;
+        case AI_FLOAT:
+            j = json {
+                {"type", "float"},
+                {"data", *reinterpret_cast<float*>(entry.mData)}
+            };
+            break;
+        case AI_DOUBLE:
+            j = json {
+                {"type", "double"},
+                {"data", *reinterpret_cast<double*>(entry.mData)}
+            };
+            break;
+        case AI_AISTRING:
+            j = json {
+                {"type", "string"},
+                {"data", *reinterpret_cast<aiString*>(entry.mData)}
+            };
+            break;
+        case AI_AIVECTOR3D:
+            j = json {
+                {"type", "vec3"},
+                {"data", *reinterpret_cast<aiVector3D*>(entry.mData)}
+            };
+            break;
+        default:
+            break;
+    };
+}
+
+void to_json(json& j, const aiMetadata* pMetaData)
+{
+    unsigned int num_properties = pMetaData->mNumProperties;
+
+    std::vector<aiString> keys(num_properties);
+    std::vector<aiMetadataEntry> values(num_properties);
+
+    std::memcpy(keys.data(), pMetaData->mKeys, sizeof(aiString) * num_properties);
+    std::memcpy(values.data(), pMetaData->mValues, sizeof(aiMetadataEntry) * num_properties);
+    
+    j = json {
+        {"num_properties", num_properties},
+        {"keys", keys},
+        {"values", values}
+    };
+}
+
+void to_json(json& j, const aiNode* pNode)
+{
+    unsigned int num_children = pNode->mNumChildren;
+    unsigned int num_meshes = pNode->mNumMeshes;
+
+    std::vector<aiNode*> children(num_children);
+    std::vector<unsigned int> meshes(num_meshes);
+
+    std::memcpy(children.data(), pNode->mChildren, sizeof(aiNode*) * num_children);
+    std::memcpy(meshes.data(), pNode->mMeshes, sizeof(unsigned int) * num_meshes);
+
+    j = json {
+        {"children", children},
+        {"meshes", meshes},
+        {"name", pNode->mName},
+        {"num_children", num_children},
+        {"num_meshes", num_meshes},
+        {"transformation", pNode->mTransformation}
+    };
+
+    if (pNode->mParent)
+    {
+        j["parent"] = pNode->mParent->mName;
+    }
+
+    if (pNode->mMetaData)
+    {
+        j["meta_data"] = pNode->mMetaData;
+    }
+}
 
 void to_json(json& j, const aiScene* pScene)
 {
