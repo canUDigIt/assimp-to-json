@@ -5,6 +5,7 @@
 #include <json/json.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <string>
 
 using json = nlohmann::json;
@@ -679,7 +680,14 @@ int main(int argc, char* argv[])
 
         json j = pScene;
 
-        std::cout << std::setw(4) << j << std::endl;
+        std::string output_name = "test.json";
+        std::ofstream output(output_name, std::ios::out | std::ios::trunc);
+        if (output.bad())
+        {
+            std::cout << "Failed to open file: " << filename << std::endl;
+            return 2;
+        }
+        output << std::setw(4) << j << std::endl;
 
         return 0;
     }
